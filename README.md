@@ -30,10 +30,10 @@ A brief report describing the approach, methodology, and any insights gained dur
 Following files are available in repository:
 
 * datathon.zip - archive with 10,000 clients. Each client is a separate archive, consisting of five files mentioned
-** this archive is split into four parts, named datathon_part[i].zip
+  * this archive is split into four parts, named datathon_part[i].zip
 * solution.csv - template CSV file to show the shape of expected solution delivered for evaluation set
 * evaluation.zip - archive with 1,000 clients. Each client is a separate archive, consisting of four files mentioned
-** this file will be submitted shortly before end of the challenge
+  * this file will be submitted shortly before end of the challenge
 
 ### Evaluation of Solution
 Solution provided will be evaluated according to following criteria:
