@@ -23,7 +23,7 @@ After the development period, participants will receive a separate evaluation da
 * label: Predicted binary label (Accept or Reject) indicating whether the client data is consistent and acceptable
 
 ### Deliverables
-A single CSV file containing the predicted labels for the 1,000 client profiles in the evaluation dataset
+A single CSV file containing the predicted labels for the 1,000 client profiles in the evaluation dataset   
 Presentation describing the approach, methodology, and any insights gained during the challenge (5 minutes)
 
 ### Description of Repository
