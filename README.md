@@ -43,10 +43,10 @@ Solution provided will be evaluated according to following criteria:
 
 #### Example calculation:
 
-Let's say a team receives the following scores:
-Accuracy: 8/10
-Solution design criteria: 7.5/10
-Presentation: 8.5/10
+Let's say a team receives the following scores:   
+Accuracy: 8/10   
+Solution design criteria: 7.5/10   
+Presentation: 8.5/10   
 Using the weights above, the final score would be: (0.5 x 8) + (0.3 x 7.5) + (0.2 x 8.5) = 4 + 2.25 + 1.7 = 7.95
 
 ### Hand-in
