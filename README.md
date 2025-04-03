@@ -20,7 +20,7 @@ Using the provided training dataset, participants must develop a machine learnin
 After the development period, participants will receive a separate evaluation dataset consisting of 1,000 client profiles, each with four JSON documents (passport, client_profile, account_form, and client_description). Their task is to apply their solution to these new client profiles and generate a CSV file with two columns:
 
 * client_id: Unique identifier for each client
-* label: Predicted binary label (0 or 1) indicating whether the client data is consistent and acceptable
+* label: Predicted binary label (Accept or Reject) indicating whether the client data is consistent and acceptable
 
 ### Deliverables
 A single CSV file containing the predicted labels for the 1,000 client profiles in the evaluation dataset
