@@ -17,7 +17,7 @@ Participants will be provided with a training dataset consisting of 10,000 clien
 Using the provided training dataset, participants must develop a machine learning model or algorithm that can automatically verify the consistency of client data and predict the corresponding label.
 
 ### Evaluation Dataset
-After the development period, participants will receive a separate evaluation dataset consisting of 1,000 client profiles, each with four JSON documents (passport, client_profile, account_form, and client_description). Their task is to apply their solution to these new client profiles and generate a CSV file with two columns:
+After the development period, participants will receive a separate evaluation dataset consisting of 1,000 client profiles, each with four JSON documents (passport, client_profile, account_form, and client_description). Their task is to apply their solution to these new client profiles and generate a CSV file with two columns (no header, no index):
 
 * client_id: Unique identifier for each client
 * label: Predicted binary label (Accept or Reject) indicating whether the client data is consistent and acceptable
