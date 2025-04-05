@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime
 from typing import List, Dict, Any, Tuple
 from enum import Enum
 import re
@@ -25,6 +26,11 @@ class RejectionReason(Enum):
     PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER = 27
     EMAIL_ADDRESS_IN_CORRECT_FORMAT = 28
     PHONE_NUMBER_IN_CORRECT_FORMAT = 29
+
+    PASSPORT_IS_EXPIRED = 30
+    CLIENT_PROFILE_SECONDAY_EDUCATION_BETWEEN_SIXTEEN_TWENTYONE = 31
+    CLIENT_EARLIEST_EMPLOYMENT_ABOVE_SIXTEEN = 33
+    CLIENT_HAS_EMPTYFIELDS = 34
 
 def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[RejectionReason]], List[List[str]]]:
     """
@@ -95,7 +101,14 @@ def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[Rejecti
     predicates = {
         RejectionReason.EMAIL_ADDRESS_IN_CORRECT_FORMAT: email_address_in_correct_format,
         RejectionReason.PHONE_NUMBER_IN_CORRECT_FORMAT: phone_number_in_correct_format,
+        RejectionReason.PASSPORT_IS_EXPIRED: passport_expired,
+        RejectionReason.CLIENT_PROFILE_SECONDAY_EDUCATION_BETWEEN_SIXTEEN_TWENTYONE: secondary_education_interval,
+        RejectionReason.CLIENT_HAS_EMPTYFIELDS: contains_invalid_empty_string_wrapper,
+        #RejectionReason.CLIENT_EARLIEST_EMPLOYMENT_ABOVE_SIXTEEN: earliest_employment_above_sixteen, <-- This one does not seem to work
     }
+
+
+
     for i, profile in enumerate(data):
         for reason, predicate in predicates.items():
             result, explanation = predicate(profile)
@@ -132,6 +145,61 @@ def phone_number_in_correct_format(profile) -> Tuple[bool, str]:
     return bool(re.match(international_pattern, normalized) 
                 or re.match(local, normalized)), phone
 
+def passport_expired(profile) -> Tuple[bool, str]:
+    expiry_str = profile['passport']['passport_expiry_date']
+    if expiry_str:
+        try:
+            expiry_date = datetime.strptime(expiry_str, "%Y-%m-%d")
+            if expiry_date < datetime(2025, 4, 1):
+                return False, ""
+        except ValueError:
+            return False, ""
+
+    return True, ""
+
+
+def secondary_education_interval(profile) -> Tuple[bool, str]:
+    sec_age, high_age = get_graduation_ages(profile)
+    if sec_age is None or not (16 <= sec_age <= 21):
+        return False, ""
+    if high_age is not None and not (21 <= high_age <= 26):
+        return False, ""
+    
+    return True, ""
+
+def contains_invalid_empty_string(profile, parent_key=None) -> bool:
+    if isinstance(profile, dict):
+        for key, value in profile.items():
+            if key == 'middle_name' and value == '':
+                continue
+            if contains_invalid_empty_string(value, key):
+                return True
+    elif isinstance(profile, list):
+        for item in profile:
+            if contains_invalid_empty_string(item, parent_key):
+                return True
+    elif profile == '':
+        # Only allow '' if the key is explicitly 'middle_name'
+        if parent_key != 'middle_name':
+            return True
+    return False
+
+def contains_invalid_empty_string_wrapper(profile) -> Tuple[bool, str]:
+    is_valid = not contains_invalid_empty_string(profile)
+    return (
+        is_valid,
+        "No invalid empty strings (except middle name)" if is_valid else "Profile contains an empty required field"
+    )
+
+def earliest_employment_above_sixteen(profile) -> Tuple[bool, str]:
+    try:
+        start_age = get_earliest_employment_start_age(profile)
+        if start_age is None or start_age < 6:
+            return False, f"Earliest employment start age is {start_age:.1f} (must be at least 12)" if start_age is not None else "No valid employment start year found"
+        return True, f"Earliest employment start age is {start_age:.1f}"
+    except Exception as e:
+        return False, f"Error checking employment age: {e}"
+
 ##### HELPER FUNCTIONS #####
 def get_nested(data, path):
     keys = path.split('.')
@@ -142,4 +210,44 @@ def get_nested(data, path):
 def extract_passport_number_from_mrz(mrz_lines):
     if mrz_lines and len(mrz_lines) >= 2:
         return mrz_lines[1][:9].strip('<')
+    return None
+
+def get_graduation_ages(person):
+    try:
+        birth_date = datetime.strptime(person['client_profile']['birth_date'], "%Y-%m-%d")
+    except Exception:
+        return None, None  # Invalid birthdate
+    
+    try:
+        sec_year = person['client_profile']['secondary_school']['graduation_year']
+        sec_grad_date = datetime(sec_year, 6, 30)
+        sec_age = (sec_grad_date - birth_date).days / 365.25
+    except Exception:
+        sec_age = None
+
+    higher_ed = person['client_profile'].get('higher_education', [])
+    if higher_ed:
+        try:
+            higher_year = higher_ed[0]['graduation_year']
+            higher_grad_date = datetime(higher_year, 6, 30)
+            higher_age = (higher_grad_date - birth_date).days / 365.25
+        except Exception:
+            higher_age = None
+    else:
+        higher_age = None
+
+    return sec_age, higher_age
+
+
+def get_earliest_employment_start_age(person):
+    birth_date = datetime.strptime(person['client_profile']['birth_date'], "%Y-%m-%d")
+    employment_history = person['client_profile'].get('employment_history', [])
+    
+    start_years = [job['start_year'] for job in employment_history if job.get('start_year') is not None]
+    
+    if start_years:
+        earliest_start_year = min(start_years)
+        employment_start_date = datetime(earliest_start_year, 6, 30)  # assume mid-year start
+        start_age = (employment_start_date - birth_date).days / 365.25
+        return start_age
     return None
