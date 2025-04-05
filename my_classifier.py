@@ -139,13 +139,13 @@ def marital_status_should_match_family_background(profile) -> Tuple[bool, str]:
     family_background_text = profile['client_description']["Family Background"]
     marriage_status = profile['client_profile']["marital_status"]
 
-    if "married" in family_background_text.lower() and marriage_status.lower() != "married":
+    if "marr" in family_background_text.lower() and marriage_status.lower() != "married":
         return False, "Marital status should be married"
-    elif "divorced" in family_background_text.lower() and marriage_status.lower() != "divorced":
+    elif "divorc" in family_background_text.lower() and marriage_status.lower() != "divorced":
         return False, "Marital status should be divorced"
-    elif "single" in family_background_text.lower() and marriage_status.lower() != "single":
+    elif "singl" in family_background_text.lower() and marriage_status.lower() != "single":
         return False, "Marital status should be single"
-    elif "widowed" in family_background_text.lower() and marriage_status.lower() != "widowed":
+    elif "widow" in family_background_text.lower() and marriage_status.lower() != "widowed":
         return False, "Marital status should be widowed"
     
     return True, "Marital status matches family background"
