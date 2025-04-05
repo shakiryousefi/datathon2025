@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Tuple
 from enum import Enum
 
 label_map = {'Reject': 0, 'Accept': 1}
+inv_label_map = {0: 'Reject', 1: 'Accept'}
 
 class RejectionReason(Enum):
     PASSPORT_FIRST_NAME_SHOULD_MATCH_ACCOUNT_FORM_FIRST_NAME = 1
