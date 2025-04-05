@@ -21,6 +21,7 @@ class RejectionReason(Enum):
     CLIENT_PROFILE_PHONE_NUMBER_SHOULD_MATCH_ACCOUNT_FORM_PHONE_NUMBER = 22
     CLIENT_PROFILE_CURRENCY_SHOULD_MATCH_ACCOUNT_FORM_CURRENCY = 24
     CLIENT_PROFILE_ADDRESS_SHOULD_MATCH_ACCOUNT_FORM_ADDRESS = 26
+    PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER = 27
 
 def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[RejectionReason]], List[List[str]]]:
     """
@@ -75,6 +76,17 @@ def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[Rejecti
                     all_rejection_reasons[i].append(rule['reason'])
                     all_explainations[i].append(f"{rule['fieldA']}({get_nested(profile, rule['fieldA'])}) should match {rule['fieldB']}({get_nested(profile, rule['fieldB'])})")
 
+    # Step 2. Check if passport number matches MRZ
+    for i, profile in enumerate(data):
+        passport_number = get_nested(profile, 'passport.passport_number')
+        mrz_lines = get_nested(profile, 'passport.passport_mrz')
+        if passport_number and mrz_lines:
+            extracted_mrz_number = extract_passport_number_from_mrz(mrz_lines)
+            if passport_number != extracted_mrz_number:
+                all_predictions[i] = 0
+                if explain:
+                    all_rejection_reasons[i].append(RejectionReason.PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER)
+                    all_explainations[i].append(f"Passport number({passport_number}) should match extracted MRZ number({extracted_mrz_number})")
 
     return all_predictions, all_rejection_reasons, all_explainations
 
@@ -90,3 +102,8 @@ def get_nested(data, path):
     for key in keys:
         data = data[key]
     return data
+
+def extract_passport_number_from_mrz(mrz_lines):
+    if mrz_lines and len(mrz_lines) >= 2:
+        return mrz_lines[1][:9].strip('<')
+    return None
