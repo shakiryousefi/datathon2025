@@ -123,28 +123,29 @@ def model(data: List[Dict], explain=False, llm=None, sampling_params=None) -> Tu
                     all_explainations[i].append(explanation)
 
     
-
     llm_predicates = {
         RejectionReason.SECONDARY_EDUCTION_SHOULD_MATCH_EDUCATION_BACKGROUND: secondary_education_should_match_education_background,
     }
 
     if llm:
-        # adjust sampling parameters as necessary for the task
-        
-        considered_indices = [i for i, profile in enumerate(data) if all_predictions[i] == 1]
 
-        preds = secondary_education_should_match_education_background(
-            profiles=[data[i] for i in considered_indices],
-            llm=llm,
-            sampling_params=sampling_params
-        )
+        for reason, predicate in llm_predicates.items():
+            # adjust sampling parameters as necessary for the task
+            
+            considered_indices = [i for i, profile in enumerate(data) if all_predictions[i] == 1]
 
-        for idx, res in zip(considered_indices, preds):
-            if not res:
-                all_predictions[idx] = 0
-                if explain:
-                    all_rejection_reasons[idx].append(RejectionReason.SECONDARY_EDUCTION_SHOULD_MATCH_EDUCATION_BACKGROUND)
-                    all_explainations[idx].append("Secondary education should match education background")
+            preds = predicate(
+                profiles=[data[i] for i in considered_indices],
+                llm=llm,
+                sampling_params=sampling_params
+            )
+
+            for idx, res in zip(considered_indices, preds):
+                if not res:
+                    all_predictions[idx] = 0
+                    if explain:
+                        all_rejection_reasons[idx].append(reason)
+                        all_explainations[idx].append("Secondary education should match education background")
 
     return all_predictions, all_rejection_reasons, all_explainations
 
