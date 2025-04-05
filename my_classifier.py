@@ -26,6 +26,7 @@ class RejectionReason(Enum):
     EMAIL_ADDRESS_IN_CORRECT_FORMAT = 28
     PHONE_NUMBER_IN_CORRECT_FORMAT = 29
     MARITAL_STATUS_SHOULD_MATCH_FAMILY_BACKGROUND = 30
+    UNIVERSITY_SHOULD_MATCH_DESCRIPTION = 31
 
 def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[RejectionReason]], List[List[str]]]:
     """
@@ -97,6 +98,7 @@ def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[Rejecti
         RejectionReason.EMAIL_ADDRESS_IN_CORRECT_FORMAT: email_address_in_correct_format,
         RejectionReason.PHONE_NUMBER_IN_CORRECT_FORMAT: phone_number_in_correct_format,
         RejectionReason.MARITAL_STATUS_SHOULD_MATCH_FAMILY_BACKGROUND: marital_status_should_match_family_background,
+        RejectionReason.UNIVERSITY_SHOULD_MATCH_DESCRIPTION: universty_should_match_description,
     }
     for i, profile in enumerate(data):
         for reason, predicate in predicates.items():
@@ -149,6 +151,16 @@ def marital_status_should_match_family_background(profile) -> Tuple[bool, str]:
         return False, "Marital status should be widowed"
     
     return True, "Marital status matches family background"
+
+
+def universty_should_match_description(profile) -> Tuple[bool, str]:
+    university = profile['client_profile']['higher_education'][0]['university'] if profile['client_profile']['higher_education'] else None
+    education_background = profile['client_description']["Education Background"]
+    if university is not None: 
+        if university.lower() not in education_background.lower():
+            return False, "University should match description"
+
+    return True, "University matches description"    
 
 ##### HELPER FUNCTIONS #####
 def get_nested(data, path):
