@@ -25,14 +25,15 @@ def extract_client_data(zip_path: Path) -> List[Dict]:
                 with zipfile.ZipFile(client_zip_bytes) as client_zip:
                     client_data = {}
                     for filename in REQUIRED_FILES + OPTIONAL_FILES:
+                        stem = Path(filename).stem
                         try:
                             with client_zip.open(filename) as f:
-                                client_data[filename] = json.load(f)
+                                client_data[stem] = json.load(f)
                         except KeyError:
                             if filename in REQUIRED_FILES:
                                 raise FileNotFoundError(f"{filename} missing in {client_zip_name}")
                             else:
-                                client_data[filename] = None
+                                client_data[stem] = None
                     clients.append(client_data)
     
     return clients
