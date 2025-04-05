@@ -24,6 +24,7 @@ class RejectionReason(Enum):
     CLIENT_PROFILE_ADDRESS_SHOULD_MATCH_ACCOUNT_FORM_ADDRESS = 26
     PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER = 27
     EMAIL_ADDRESS_IN_CORRECT_FORMAT = 28
+    PHONE_NUMBER_IN_CORRECT_FORMAT = 29
 
 def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[RejectionReason]], List[List[str]]]:
     """
@@ -92,7 +93,8 @@ def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[Rejecti
 
     # Step 3. Check predicate functions
     predicates = {
-        RejectionReason.EMAIL_ADDRESS_IN_CORRECT_FORMAT: email_address_in_correct_format
+        RejectionReason.EMAIL_ADDRESS_IN_CORRECT_FORMAT: email_address_in_correct_format,
+        RejectionReason.PHONE_NUMBER_IN_CORRECT_FORMAT: phone_number_in_correct_format,
     }
     for i, profile in enumerate(data):
         for reason, predicate in predicates.items():
@@ -121,6 +123,14 @@ def email_address_in_correct_format(profile) -> Tuple[bool, str]:
         return False
     email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
     return (re.match(email_regex, email) is not None), email
+
+def phone_number_in_correct_format(profile) -> Tuple[bool, str]:
+    phone = profile['account_form']['phone_number']
+    normalized = re.sub(r"[ \-()]", "", phone)
+    international_pattern = r"^(\+|00)[1-9]\d{7,14}$"  # +41791234567, 0041791234567
+    local = r"^\d{8,10}$"
+    return bool(re.match(international_pattern, normalized) 
+                or re.match(local, normalized)), phone
 
 ##### HELPER FUNCTIONS #####
 def get_nested(data, path):
