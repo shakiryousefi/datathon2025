@@ -25,6 +25,7 @@ class RejectionReason(Enum):
     PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER = 27
     EMAIL_ADDRESS_IN_CORRECT_FORMAT = 28
     PHONE_NUMBER_IN_CORRECT_FORMAT = 29
+    MARITAL_STATUS_SHOULD_MATCH_FAMILY_BACKGROUND = 30
 
 def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[RejectionReason]], List[List[str]]]:
     """
@@ -95,6 +96,7 @@ def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[Rejecti
     predicates = {
         RejectionReason.EMAIL_ADDRESS_IN_CORRECT_FORMAT: email_address_in_correct_format,
         RejectionReason.PHONE_NUMBER_IN_CORRECT_FORMAT: phone_number_in_correct_format,
+        RejectionReason.MARITAL_STATUS_SHOULD_MATCH_FAMILY_BACKGROUND: marital_status_should_match_family_background,
     }
     for i, profile in enumerate(data):
         for reason, predicate in predicates.items():
@@ -131,6 +133,22 @@ def phone_number_in_correct_format(profile) -> Tuple[bool, str]:
     local = r"^\d{8,10}$"
     return bool(re.match(international_pattern, normalized) 
                 or re.match(local, normalized)), phone
+
+def marital_status_should_match_family_background(profile) -> Tuple[bool, str]:
+
+    family_background_text = profile['client_description']["Family Background"]
+    marriage_status = profile['client_profile']["marital_status"]
+
+    if "married" in family_background_text.lower() and marriage_status.lower() != "married":
+        return False, "Marital status should be married"
+    elif "divorced" in family_background_text.lower() and marriage_status.lower() != "divorced":
+        return False, "Marital status should be divorced"
+    elif "single" in family_background_text.lower() and marriage_status.lower() != "single":
+        return False, "Marital status should be single"
+    elif "widowed" in family_background_text.lower() and marriage_status.lower() != "widowed":
+        return False, "Marital status should be widowed"
+    
+    return True, "Marital status matches family background"
 
 ##### HELPER FUNCTIONS #####
 def get_nested(data, path):
