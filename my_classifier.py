@@ -26,9 +26,9 @@ class RejectionReason(Enum):
     PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER = 27
     EMAIL_ADDRESS_IN_CORRECT_FORMAT = 28
     PHONE_NUMBER_IN_CORRECT_FORMAT = 29
-
-    PASSPORT_IS_EXPIRED = 30
-    CLIENT_PROFILE_SECONDAY_EDUCATION_BETWEEN_SIXTEEN_TWENTYONE = 31
+    MARITAL_STATUS_SHOULD_MATCH_FAMILY_BACKGROUND = 30
+    PASSPORT_IS_EXPIRED = 31
+    CLIENT_PROFILE_SECONDAY_EDUCATION_BETWEEN_SIXTEEN_TWENTYONE = 32
     CLIENT_EARLIEST_EMPLOYMENT_ABOVE_SIXTEEN = 33
     CLIENT_HAS_EMPTYFIELDS = 34
 
@@ -101,6 +101,7 @@ def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[Rejecti
     predicates = {
         RejectionReason.EMAIL_ADDRESS_IN_CORRECT_FORMAT: email_address_in_correct_format,
         RejectionReason.PHONE_NUMBER_IN_CORRECT_FORMAT: phone_number_in_correct_format,
+        RejectionReason.MARITAL_STATUS_SHOULD_MATCH_FAMILY_BACKGROUND: marital_status_should_match_family_background,
         RejectionReason.PASSPORT_IS_EXPIRED: passport_expired,
         RejectionReason.CLIENT_PROFILE_SECONDAY_EDUCATION_BETWEEN_SIXTEEN_TWENTYONE: secondary_education_interval,
         RejectionReason.CLIENT_HAS_EMPTYFIELDS: contains_invalid_empty_string_wrapper,
@@ -144,6 +145,22 @@ def phone_number_in_correct_format(profile) -> Tuple[bool, str]:
     local = r"^\d{8,10}$"
     return bool(re.match(international_pattern, normalized) 
                 or re.match(local, normalized)), phone
+
+def marital_status_should_match_family_background(profile) -> Tuple[bool, str]:
+
+    family_background_text = profile['client_description']["Family Background"]
+    marriage_status = profile['client_profile']["marital_status"]
+
+    if "marr" in family_background_text.lower() and marriage_status.lower() != "married":
+        return False, "Marital status should be married"
+    elif "divorc" in family_background_text.lower() and marriage_status.lower() != "divorced":
+        return False, "Marital status should be divorced"
+    elif "singl" in family_background_text.lower() and marriage_status.lower() != "single":
+        return False, "Marital status should be single"
+    elif "widow" in family_background_text.lower() and marriage_status.lower() != "widowed":
+        return False, "Marital status should be widowed"
+    
+    return True, "Marital status matches family background"
 
 def passport_expired(profile) -> Tuple[bool, str]:
     expiry_str = profile['passport']['passport_expiry_date']
@@ -251,3 +268,4 @@ def get_earliest_employment_start_age(person):
         start_age = (employment_start_date - birth_date).days / 365.25
         return start_age
     return None
+
