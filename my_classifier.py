@@ -32,8 +32,9 @@ class RejectionReason(Enum):
     CLIENT_EARLIEST_EMPLOYMENT_ABOVE_SIXTEEN = 33
     CLIENT_HAS_EMPTYFIELDS = 34
     UNIVERSITY_SHOULD_MATCH_DESCRIPTION = 35
+    SECONDARY_EDUCTION_SHOULD_MATCH_EDUCATION_BACKGROUND = 36
 
-def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[RejectionReason]], List[List[str]]]:
+def model(data: List[Dict], explain=False, llm=None, sampling_params=None) -> Tuple[List[int], List[List[RejectionReason]], List[List[str]]]:
     """
     @return:
      - List[int]: 0 for reject, 1 for accept
@@ -120,6 +121,30 @@ def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[Rejecti
                 if explain:
                     all_rejection_reasons[i].append(reason)
                     all_explainations[i].append(explanation)
+
+    
+
+    llm_predicates = {
+        RejectionReason.SECONDARY_EDUCTION_SHOULD_MATCH_EDUCATION_BACKGROUND: secondary_education_should_match_education_background,
+    }
+
+    if llm:
+        # adjust sampling parameters as necessary for the task
+        
+        considered_indices = [i for i, profile in enumerate(data) if all_predictions[i] == 1]
+
+        preds = secondary_education_should_match_education_background(
+            profiles=[data[i] for i in considered_indices],
+            llm=llm,
+            sampling_params=sampling_params
+        )
+
+        for idx, res in zip(considered_indices, preds):
+            if not res:
+                all_predictions[idx] = 0
+                if explain:
+                    all_rejection_reasons[idx].append(RejectionReason.SECONDARY_EDUCTION_SHOULD_MATCH_EDUCATION_BACKGROUND)
+                    all_explainations[idx].append("Secondary education should match education background")
 
     return all_predictions, all_rejection_reasons, all_explainations
 
@@ -281,3 +306,20 @@ def get_earliest_employment_start_age(person):
         return start_age
     return None
 
+def secondary_education_should_match_education_background(profiles, llm, sampling_params) -> List[Tuple[bool, str]]:
+
+    prompts = [
+        (
+            f"Here is the client's secondary school: <{profile['client_profile']['secondary_school']}>\n"
+            f"Here is the Education Background of the client: <{profile['client_description']['Education Background']}>\n"
+            "Does the secondary school match?\n"
+            "If this is the case say YES, otherwise say NO."
+        )
+        for profile in profiles
+    ]
+
+    # Generate texts from the prompts
+    outputs = llm.generate(prompts, sampling_params)
+    answers = [o.outputs[0].text for o in outputs]
+
+    return [not a.startswith(" NO")  for a in answers]
