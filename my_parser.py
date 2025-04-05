@@ -52,3 +52,10 @@ def process_zips(paths: List[str]) -> List[Dict]:
 
 def get_all():
     return process_zips(ZIP_PATHS)
+
+def export(labels, path):
+    inv_label_map = {0: 'Reject', 1: 'Accept'}
+    with open(path, 'w') as f:
+        for i, pred in enumerate(labels):
+            label = inv_label_map[pred]
+            f.write(f"client_{i};{label}\n")
