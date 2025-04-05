@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Dict, Any, Tuple
 from enum import Enum
+import re
 
 label_map = {'Reject': 0, 'Accept': 1}
 inv_label_map = {0: 'Reject', 1: 'Accept'}
@@ -22,6 +23,8 @@ class RejectionReason(Enum):
     CLIENT_PROFILE_CURRENCY_SHOULD_MATCH_ACCOUNT_FORM_CURRENCY = 24
     CLIENT_PROFILE_ADDRESS_SHOULD_MATCH_ACCOUNT_FORM_ADDRESS = 26
     PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER = 27
+    EMAIL_ADDRESS_IN_CORRECT_FORMAT = 28
+    PHONE_NUMBER_IN_CORRECT_FORMAT = 29
 
 def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[RejectionReason]], List[List[str]]]:
     """
@@ -88,6 +91,20 @@ def model(data: List[Dict], explain=False) -> Tuple[List[int], List[List[Rejecti
                     all_rejection_reasons[i].append(RejectionReason.PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER)
                     all_explainations[i].append(f"Passport number({passport_number}) should match extracted MRZ number({extracted_mrz_number})")
 
+    # Step 3. Check predicate functions
+    predicates = {
+        RejectionReason.EMAIL_ADDRESS_IN_CORRECT_FORMAT: email_address_in_correct_format,
+        RejectionReason.PHONE_NUMBER_IN_CORRECT_FORMAT: phone_number_in_correct_format,
+    }
+    for i, profile in enumerate(data):
+        for reason, predicate in predicates.items():
+            result, explanation = predicate(profile)
+            if not result:
+                all_predictions[i] = 0
+                if explain:
+                    all_rejection_reasons[i].append(reason)
+                    all_explainations[i].append(explanation)
+
     return all_predictions, all_rejection_reasons, all_explainations
 
 def explain(data: List[Dict]):
@@ -95,6 +112,25 @@ def explain(data: List[Dict]):
 
 def predict(data: List[Dict]) -> List[int]:
     return model(data, explain=False)[0]
+
+##### REJECTION PREDICATES
+# Should all return true, false means we should reject the sample
+# May return a string of interest regardless of return value (for debugging)
+
+def email_address_in_correct_format(profile) -> Tuple[bool, str]:
+    email = profile['account_form']['email_address']
+    if not email:
+        return False
+    email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    return (re.match(email_regex, email) is not None), email
+
+def phone_number_in_correct_format(profile) -> Tuple[bool, str]:
+    phone = profile['account_form']['phone_number']
+    normalized = re.sub(r"[ \-()]", "", phone)
+    international_pattern = r"^(\+|00)[1-9]\d{7,14}$"  # +41791234567, 0041791234567
+    local = r"^\d{8,10}$"
+    return bool(re.match(international_pattern, normalized) 
+                or re.match(local, normalized)), phone
 
 ##### HELPER FUNCTIONS #####
 def get_nested(data, path):
