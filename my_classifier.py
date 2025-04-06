@@ -132,31 +132,37 @@ def model(
     ]
     for i, profile in enumerate(data):
         for rule in must_match_fields:
-            if get_nested(profile, rule["fieldA"]) != get_nested(
-                profile, rule["fieldB"]
-            ):
-                all_predictions[i] = 0
-                if explain:
-                    all_rejection_reasons[i].append(rule["reason"])
-                    all_explainations[i].append(
-                        f"{rule['fieldA']}({get_nested(profile, rule['fieldA'])}) should match {rule['fieldB']}({get_nested(profile, rule['fieldB'])})"
-                    )
+            try:
+                if get_nested(profile, rule["fieldA"]) != get_nested(
+                    profile, rule["fieldB"]
+                ):
+                    all_predictions[i] = 0
+                    if explain:
+                        all_rejection_reasons[i].append(rule["reason"])
+                        all_explainations[i].append(
+                            f"{rule['fieldA']}({get_nested(profile, rule['fieldA'])}) should match {rule['fieldB']}({get_nested(profile, rule['fieldB'])})"
+                        )
+            except:
+                continue
 
     # Step 2. Check if passport number matches MRZ
     for i, profile in enumerate(data):
-        passport_number = get_nested(profile, "passport.passport_number")
-        mrz_lines = get_nested(profile, "passport.passport_mrz")
-        if passport_number and mrz_lines:
-            extracted_mrz_number = extract_passport_number_from_mrz(mrz_lines)
-            if passport_number != extracted_mrz_number:
-                all_predictions[i] = 0
-                if explain:
-                    all_rejection_reasons[i].append(
-                        RejectionReason.PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER
-                    )
-                    all_explainations[i].append(
-                        f"Passport number({passport_number}) should match extracted MRZ number({extracted_mrz_number})"
-                    )
+        try:
+            passport_number = get_nested(profile, "passport.passport_number")
+            mrz_lines = get_nested(profile, "passport.passport_mrz")
+            if passport_number and mrz_lines:
+                extracted_mrz_number = extract_passport_number_from_mrz(mrz_lines)
+                if passport_number != extracted_mrz_number:
+                    all_predictions[i] = 0
+                    if explain:
+                        all_rejection_reasons[i].append(
+                            RejectionReason.PASSPORT_NUMBER_SHOULD_MATCH_EXTRACTED_MRZ_NUMBER
+                        )
+                        all_explainations[i].append(
+                            f"Passport number({passport_number}) should match extracted MRZ number({extracted_mrz_number})"
+                        )
+        except:
+            continue
 
     # Step 3. Check predicate functions
     predicates = {
@@ -173,13 +179,17 @@ def model(
     }
 
     for i, profile in enumerate(data):
+        
         for reason, predicate in predicates.items():
-            result, explanation = predicate(profile)
-            if not result:
-                all_predictions[i] = 0
-                if explain:
-                    all_rejection_reasons[i].append(reason)
-                    all_explainations[i].append(explanation)
+            try:
+                result, explanation = predicate(profile)
+                if not result:
+                    all_predictions[i] = 0
+                    if explain:
+                        all_rejection_reasons[i].append(reason)
+                        all_explainations[i].append(explanation)
+            except:
+                continue
 
     llm_predicates = {
         RejectionReason.SECONDARY_EDUCTION_SHOULD_MATCH_EDUCATION_BACKGROUND: secondary_education_should_match_education_background,

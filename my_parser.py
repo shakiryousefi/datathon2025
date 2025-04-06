@@ -11,6 +11,7 @@ REQUIRED_FILES = [
     "account_form.json",
     "client_description.json"
 ]
+
 OPTIONAL_FILES = ["label.json"]
 
 def extract_client_data(zip_path: Path) -> List[Dict]:
@@ -31,7 +32,8 @@ def extract_client_data(zip_path: Path) -> List[Dict]:
                                 client_data[stem] = json.load(f)
                         except KeyError:
                             if filename in REQUIRED_FILES:
-                                raise FileNotFoundError(f"{filename} missing in {client_zip_name}")
+                                print(f"Missing required file: {filename} in {client_zip_name}")
+                                #raise FileNotFoundError(f"{filename} missing in {client_zip_name}")
                             else:
                                 client_data[stem] = None
                     clients.append(client_data)
