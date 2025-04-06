@@ -416,30 +416,6 @@ def get_earliest_employment_start_age(person):
         return start_age
     return None
 
-
-def secondary_education_should_match_education_background(
-    profiles, llm, sampling_params
-) -> List[Tuple[bool, str]]:
-
-    prompts = [
-        (
-            f"Here is the client's secondary school: <{profile['client_profile']['secondary_school']}>\n"
-            f"Here is the Education Background of the client: <{profile['client_description']['Education Background']}>\n"
-            "Does the secondary school match?\n"
-            "If this is the case say YES, otherwise say NO."
-        )
-        for profile in profiles
-    ]
-
-    # Generate texts from the prompts
-    outputs = llm.generate(prompts, sampling_params)
-    answers = [o.outputs[0].text for o in outputs]
-
-    return [
-        not a.startswith(" NO") for a in answers
-    ], "Secondary education should match education background"
-
-
 def secondary_education_should_match_education_background(
     profiles, llm, sampling_params
 ) -> List[Tuple[bool, str]]:
