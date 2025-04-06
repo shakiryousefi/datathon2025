@@ -37,6 +37,7 @@ class RejectionReason(Enum):
     UNIVERSITY_SHOULD_MATCH_DESCRIPTION = 35
     SECONDARY_EDUCTION_SHOULD_MATCH_EDUCATION_BACKGROUND = 36
     WEALTH_MUST_BE_MENTIONED = 37
+    CURRENCY_SHOULD_MATCH_WEALTH_SUMMARY = 38
 
 
 def model(
@@ -169,6 +170,7 @@ def model(
         RejectionReason.CLIENT_PROFILE_SECONDAY_EDUCATION_BETWEEN_SIXTEEN_TWENTYONE: secondary_education_interval,
         RejectionReason.CLIENT_HAS_EMPTYFIELDS: contains_invalid_empty_string_wrapper,
         RejectionReason.WEALTH_MUST_BE_MENTIONED: wealth_must_be_mentioned,
+        RejectionReason.CURRENCY_SHOULD_MATCH_WEALTH_SUMMARY: currency_should_match_wealth_summary,
         # RejectionReason.CLIENT_EARLIEST_EMPLOYMENT_ABOVE_SIXTEEN: earliest_employment_above_sixteen, <-- This one does not seem to work
     }
 
@@ -475,3 +477,15 @@ def wealth_must_be_mentioned(profile) -> Tuple[bool, str]:
         return False, "Profession must be mentioned in inheritance description"
 
     return True, "Wealth mentioned in description"
+
+def currency_should_match_wealth_summary(profile) -> Tuple[bool, str]:
+    """
+    Check if the currency in the wealth summary matches the account form currency.
+    """
+    account_currency = profile["client_profile"]["currency"]
+    wealth_summary = profile["client_description"]["Wealth Summary"]
+
+    if account_currency not in wealth_summary:
+        return False, f"Account form currency '{account_currency}' should match wealth summary"
+
+    return True, "Currency matches"
