@@ -134,7 +134,7 @@ def model(data: List[Dict], explain=False, llm=None, sampling_params=None) -> Tu
             
             considered_indices = [i for i, profile in enumerate(data) if all_predictions[i] == 1]
 
-            preds = predicate(
+            explanation, preds = predicate(
                 profiles=[data[i] for i in considered_indices],
                 llm=llm,
                 sampling_params=sampling_params
@@ -145,7 +145,7 @@ def model(data: List[Dict], explain=False, llm=None, sampling_params=None) -> Tu
                     all_predictions[idx] = 0
                     if explain:
                         all_rejection_reasons[idx].append(reason)
-                        all_explainations[idx].append("Secondary education should match education background")
+                        all_explainations[idx].append(explanation)
 
     return all_predictions, all_rejection_reasons, all_explainations
 
@@ -323,4 +323,22 @@ def secondary_education_should_match_education_background(profiles, llm, samplin
     outputs = llm.generate(prompts, sampling_params)
     answers = [o.outputs[0].text for o in outputs]
 
-    return [not a.startswith(" NO")  for a in answers]
+    return [not a.startswith(" NO")  for a in answers], "Secondary education should match education background"
+
+def secondary_education_should_match_education_background(profiles, llm, sampling_params) -> List[Tuple[bool, str]]:
+
+    prompts = [
+        (
+            f"Here is the client's secondary school: <{profile['client_profile']['secondary_school']}>\n"
+            f"Here is the Education Background of the client: <{profile['client_description']['Education Background']}>\n"
+            "Does the secondary school match?\n"
+            "If this is the case say YES, otherwise say NO."
+        )
+        for profile in profiles
+    ]
+
+    # Generate texts from the prompts
+    outputs = llm.generate(prompts, sampling_params)
+    answers = [o.outputs[0].text for o in outputs]
+
+    return [not a.startswith(" NO")  for a in answers], "Secondary education should match education background"
